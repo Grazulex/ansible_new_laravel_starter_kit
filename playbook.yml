@@ -49,6 +49,18 @@
       command: "./vendor/bin/sail artisan storage:link"
       args:
           chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Update composer"
+      command: "./vendor/bin/sail composer update"
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Install Pest"
+      command: "./vendor/bin/sail composer require pestphp/pest --dev --with-all-dependencies"
+      args:
+        chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Init Pest"
+      command: "./vendor/bin/sail php ./vendor/bin/pest --init"
+      args:
+        chdir: "{{ project_path }}/{{ project_name }}"
     - name: "Install Laravel Breeze"
       command: "./vendor/bin/sail composer require laravel/breeze --dev"
       args:
