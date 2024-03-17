@@ -1,6 +1,6 @@
 # Laravel kit 11
 
-Install last Laravel package, Sail and other startup kit with Ansible playbook
+Install localy last Laravel package, Sail and other startup kit with Ansible playbook
 
 - Laravel 11
 - Sail (PHP8.3, Mysql, redis, memcached, meilisearch, minio, mailpit)
