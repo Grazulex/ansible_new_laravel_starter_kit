@@ -1,0 +1,112 @@
+---
+- name: Install new Laravel project and other startup kits
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars_prompt:
+    - name: "project_name"
+      prompt: "Enter the project name"
+      private: no
+    - name: "project_path"
+      prompt: "Enter the project path"
+      default: "~/Dev/"
+      private: no
+    - name: "need_breeze"
+      prompt: "Do you need Laravel Breeze? (yes/no)"
+      default: "no"
+      private: no
+  tasks:
+    - name: "Create project directory"
+      file:
+        path: "{{ project_path }}/{{ project_name }}"
+        state: directory
+    - name: "Create Laravel project if Github repository is empty"
+      command: "composer create-project --prefer-dist laravel/laravel {{ project_name }}"
+      args:
+        chdir: "{{ project_path }}"
+    - name: "Update database connection from mysqli to mysql in the .env file"
+      replace:
+          path: "{{ project_path }}/{{ project_name }}/.env"
+          regexp: 'DB_CONNECTION=mysqli'
+          replace: 'DB_CONNECTION=mysql'
+    - name: "Install laravel Sail"
+      command: "composer require laravel/sail --dev"
+      args:
+        chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Run Sail install"
+      command: "php artisan sail:install --with=mysql,redis,meilisearch,memcached,minio,mailpit"
+      args:
+        chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Run Sail up"
+      command: "./vendor/bin/sail up -d"
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Run Sail artisan key:generate"
+      command: "./vendor/bin/sail artisan key:generate"
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Run sail artisan storage:link"
+      command: "./vendor/bin/sail artisan storage:link"
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Install Laravel Breeze"
+      command: "./vendor/bin/sail composer require laravel/breeze --dev"
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
+      when: need_breeze == "yes"
+    - name: "Run sail artisan breeze:install"
+      command: "./vendor/bin/sail artisan breeze:install blade --no-interaction"
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
+      when: need_breeze == "yes"
+    - name: "Install Laravel/pint"
+      command: "./vendor/bin/sail composer require laravel/pint --dev"
+      args:
+        chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Install Larastan"
+      command: "./vendor/bin/sail composer require larastan/larastan:^2.0 --dev"
+      args:
+        chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Create default phpstan.neon file in root folder"
+      copy:
+        dest: "{{ project_path }}/{{ project_name }}/phpstan.neon"
+        content: |
+          includes:
+            - vendor/larastan/larastan/extension.neon
+          parameters:
+            level: 5
+            paths:
+              - app/
+    - name: "Install Laravel/telescope"
+      command: "./vendor/bin/sail composer require laravel/telescope --dev"
+      args:
+        chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Run sail artisan telescope:install"
+      command: "./vendor/bin/sail artisan telescope:install"
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Update minimum-stability from stable to dev in composer.json file"
+      replace:
+        path: "{{ project_path }}/{{ project_name }}/composer.json"
+        regexp: '"minimum-stability": "stable"'
+        replace: '"minimum-stability": "beta"'
+    - name: "Install Laravel/pulse"
+      command: "./vendor/bin/sail composer require laravel/pulse"
+      args:
+        chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Run sail artisan vendor:publish --provider=\"Laravel\Pulse\PulseServiceProvider\""
+      command: "./vendor/bin/sail artisan vendor:publish --provider=\"Laravel\Pulse\PulseServiceProvider\""
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Run sail artisan migrate"
+      command: "./vendor/bin/sail artisan migrate"
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Run NPM install"
+      command: "./vendor/bin/sail npm install"
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
+    - name: "Stop sail"
+      command: "./vendor/bin/sail down"
+      args:
+          chdir: "{{ project_path }}/{{ project_name }}"
